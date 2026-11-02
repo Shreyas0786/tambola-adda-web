@@ -2,32 +2,159 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src 'self'; script-src 'none'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'">
+  <meta name="referrer" content="no-referrer">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Tambola Adda</title>
-  <meta name="description" content="Tambola Adda, a companion app for hosts of in-person Tambola and Housie games.">
+  <title>Tambola Adda — Offline Tambola &amp; Housie Number Caller</title>
+  <meta name="description" content="Tambola Adda is an offline Tambola and Housie number caller for in-person games. Call numbers aloud, follow the 1–90 board and track prizes. No account or ads.">
+  <link rel="canonical" href="https://shreyas0786.github.io/tambola-adda-web/">
+  <meta name="theme-color" content="#fffbf3">
+  <link rel="icon" type="image/png" href="app-icon.png">
+  <link rel="apple-touch-icon" href="app-icon.png">
+
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Tambola Adda">
+  <meta property="og:title" content="Tambola Adda — Offline Tambola &amp; Housie Number Caller">
+  <meta property="og:description" content="Call numbers aloud, follow the board, and track prizes while hosting an in-person game. No account or ads.">
+  <meta property="og:url" content="https://shreyas0786.github.io/tambola-adda-web/">
+  <meta property="og:image" content="https://shreyas0786.github.io/tambola-adda-web/app-icon.png">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:width" content="1024">
+  <meta property="og:image:height" content="1024">
+  <meta property="og:image:alt" content="Tambola Adda app icon: a cream Tambola ticket and a yellow number 90 ball on an orange background.">
+  <meta name="twitter:card" content="summary">
+
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="home.css">
 </head>
-<body>
+<body class="home">
+  <a class="skip-link" href="#main">Skip to content</a>
+
   <header>
     <a class="brand" href="./"><img class="icon" src="app-icon.png" alt="" width="48" height="48"><img class="wordmark" src="wordmark.svg" alt="Tambola Adda home" width="495" height="60"></a>
     <nav aria-label="Site">
-      <a href="privacy/">Privacy policy</a>
+      <a href="#how">How it works</a>
+      <a href="#faq">FAQ</a>
+      <a href="privacy/">Privacy</a>
       <a href="support/">Support</a>
     </nav>
   </header>
 
-  <main>
-    <h1>A companion for Tambola hosts</h1>
-    <p>Tambola Adda helps the host of an in-person Tambola or Housie game call numbers from 1 to 90, announce them aloud and keep track of prizes. It has no accounts, ads or online play.</p>
-    <p>Tambola Adda is a number-calling and record-keeping tool for in-person games. It does not promote or encourage gambling, accept bets, collect entry fees, process payments or pay out prizes. Prize amounts are records entered by the host.</p>
-    <div class="card">
-      <p><a href="privacy/">Privacy policy</a> – what the app stores and what happens when you contact us.</p>
-      <p><a href="support/">Support</a> – help and how to reach us.</p>
-    </div>
+  <main id="main" tabindex="-1">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-intro">
+        <p class="status"><span class="status-dot" aria-hidden="true"></span>Coming soon to iPhone.</p>
+        <h1 id="hero-title">Bring your <span class="accent">Tambola table</span> together.</h1>
+        <p class="lede">Tambola Adda is an offline Tambola and Housie number caller for in-person games. Call numbers aloud, follow the board, and track prizes while you host. No account or ads.</p>
+      </div>
+      <div class="hero-visual">
+        <span class="ball ball-a" aria-hidden="true">9</span>
+        <span class="ball ball-b" aria-hidden="true">22</span>
+        <span class="ball ball-c" aria-hidden="true">49</span>
+        <span class="ball ball-d" aria-hidden="true">90</span>
+        <img class="shot shot-hero" src="assets/screenshots/web/game-light.webp" width="660" height="1434" fetchpriority="high" decoding="async" alt="Tambola Adda game screen in light mode: the current number in a large yellow ball, a Call Next button and the 1 to 90 number board with called numbers highlighted.">
+      </div>
+      <p class="actions">
+        <a class="button" href="#how">See how it works</a>
+        <a class="text-link" href="#faq">Read the FAQ</a>
+      </p>
+    </section>
+
+    <section class="how" id="how" aria-labelledby="how-title">
+      <p class="kicker">How it works</p>
+      <h2 id="how-title">You host. Tambola Adda keeps count.</h2>
+      <ol class="steps" role="list">
+        <li>
+          <span class="ball step-ball" aria-hidden="true">1</span>
+          <h3>Call it out loud</h3>
+          <p>Tap Call Next. Your phone announces each number from 1 to 90 with its traditional phrase, or stays quiet when muted.</p>
+        </li>
+        <li>
+          <span class="ball step-ball" aria-hidden="true">2</span>
+          <h3>Keep the board in view</h3>
+          <p>Called numbers are highlighted on the 1–90 board, and recent calls are listed under the current number.</p>
+        </li>
+        <li>
+          <span class="ball step-ball" aria-hidden="true">3</span>
+          <h3>Tick off the prizes</h3>
+          <p>Set up Early Five, lines and Full House, then mark each one claimed as it is won.</p>
+        </li>
+      </ol>
+    </section>
+
+    <section class="prizes" id="prizes" aria-labelledby="prizes-title">
+      <div class="prizes-text">
+        <p class="kicker">Prizes</p>
+        <h2 id="prizes-title">Know what’s claimed and what’s left</h2>
+        <p>Keep every prize and amount in one list. The game summary shows the pool, what has been claimed and how far the game has got.</p>
+        <p>Next round? Reset Game clears the called numbers and unclaims every prize.</p>
+      </div>
+      <div class="shot-pair">
+        <figure>
+          <img class="shot" src="assets/screenshots/web/prizes.webp" width="660" height="1434" loading="lazy" decoding="async" alt="Prizes screen scrolled partway down: unclaimed line prizes and Full House with their amounts, two claimed prizes and the total pool.">
+          <figcaption>Prizes screen, scrolled down the list</figcaption>
+        </figure>
+        <figure>
+          <img class="shot" src="assets/screenshots/web/stats.webp" width="660" height="1434" loading="lazy" decoding="async" alt="Game summary screen: a budget overview of the prize pool, claimed and remaining amounts, game statistics and a Reset Game button.">
+          <figcaption>Game summary</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="dark" id="dark-mode" aria-labelledby="dark-title">
+      <div class="dark-text">
+        <p class="kicker">Themes</p>
+        <h2 id="dark-title">Bright room or late night</h2>
+        <p>Choose light or dark, or follow your phone’s setting. In the dark theme, called numbers are outlined in orange.</p>
+      </div>
+      <figure class="dark-figure">
+        <img class="shot shot-small" src="assets/screenshots/web/game-dark.webp" width="660" height="1434" loading="lazy" decoding="async" alt="Tambola Adda game screen in dark mode, with called numbers outlined in orange on the number board.">
+      </figure>
+    </section>
+
+    <section class="privacy-card" id="privacy" aria-labelledby="privacy-title">
+      <p class="kicker">Privacy</p>
+      <h2 id="privacy-title">Made for the room, not the internet</h2>
+      <ul class="checks">
+        <li>No account and no ads.</li>
+        <li>No analytics and no app server.</li>
+        <li>Works without an internet connection.</li>
+        <li>Your game and prizes stay saved on your device.</li>
+      </ul>
+      <p><a href="privacy/">Read the privacy policy</a> to see exactly what the app stores.</p>
+    </section>
+
+    <section class="faq" id="faq" aria-labelledby="faq-title">
+      <h2 id="faq-title">Frequently asked questions</h2>
+
+      <h3>When can I get Tambola Adda?</h3>
+      <p>Coming soon to iPhone. We’ll share the download link here when it’s available.</p>
+
+      <h3>Does it work offline?</h3>
+      <p>Yes. Calling numbers, the board and prize tracking all work without an internet connection. Links to this website and to email open in your browser or email app.</p>
+
+      <h3>Do I need an account? Are there ads?</h3>
+      <p>No. There is no account to create, and the app has no ads or analytics.</p>
+
+      <h3>Is it a Housie caller too?</h3>
+      <p>Yes. Tambola and Housie are two names for the same game played with numbers from 1 to 90, so Tambola Adda works as a Housie caller as well.</p>
+
+      <h3>Can players join online?</h3>
+      <p>No. Tambola Adda is for hosting in-person games and has no online play.</p>
+
+      <h3>What happens if I close the app mid-game?</h3>
+      <p>The game and prizes are saved on your device and come back when you reopen the app.</p>
+
+      <h3>Is Tambola Adda a gambling app?</h3>
+      <p>No. Tambola Adda is a number-calling and record-keeping tool for in-person games. It does not promote or encourage gambling, accept bets, collect entry fees, process payments or pay out prizes. Prize amounts are records entered by the host.</p>
+
+      <p class="faq-more">More questions? Visit <a href="support/">Support</a>.</p>
+    </section>
   </main>
 
   <footer>
     <p>Tambola Adda · Published by Shreyas Sonwane · <a href="mailto:tambolaadda.support@proton.me">tambolaadda.support@proton.me</a></p>
+    <p><a href="privacy/">Privacy policy</a> · <a href="support/">Support</a></p>
   </footer>
 </body>
 </html>

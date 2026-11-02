@@ -1,0 +1,15 @@
+# Publishing exclusions only. A custom list replaces the build's defaults,
+# so the GitHub Pages defaults (Jekyll 3.10 list plus CNAME) are restated.
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - vendor/bundle/
+  - vendor/cache/
+  - vendor/gems/
+  - vendor/ruby/
+  - CNAME
+  - AGENTS.md
+  - _tests/
+  - assets/screenshots/1206x2622/
+  - assets/screenshots/1320x2868/
