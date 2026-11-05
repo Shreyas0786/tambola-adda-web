@@ -3,6 +3,8 @@
 Run from anywhere:  python3 _tests/test_landing_page.py
 """
 
+import hashlib
+import re
 import struct
 import unittest
 import xml.etree.ElementTree as ET
@@ -256,6 +258,92 @@ class SecurityMetadata(unittest.TestCase):
             metas = [a for t, a in Page(rel).tags if t == "meta" and a.get("name") == "referrer"]
             with self.subTest(page=rel):
                 self.assertEqual([m.get("content") for m in metas], ["no-referrer"])
+
+
+APP_STORE_URL = "https://apps.apple.com/app/id6824725587"
+BADGE_SRC = "assets/app-store/download-on-the-app-store.svg"
+QR_SRC = "assets/app-store/app-store-qr.svg"
+# Apple's official black "Download on the App Store" badge (US-UK), as served at
+# https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg
+BADGE_SHA256 = "a26fc5b38380272c92e9019a2eb8b45542a66814b3e2b203772db8904b9fb99f"
+
+
+def visible_text(rel_path):
+    """Whitespace-normalised text of a page, without tags."""
+    class Text(HTMLParser):
+        def __init__(self):
+            super().__init__(convert_charrefs=True)
+            self.parts = []
+
+        def handle_data(self, data):
+            self.parts.append(data)
+
+    parser = Text()
+    parser.feed((ROOT / rel_path).read_text(encoding="utf-8"))
+    return " ".join(" ".join(parser.parts).split())
+
+
+class AppStoreDownload(unittest.TestCase):
+    def setUp(self):
+        self.page = Page("index.html")
+        self.tags = self.page.tags
+
+    def test_every_store_link_uses_the_exact_url(self):
+        hrefs = [a["href"] for t, a in self.tags if t == "a" and "apple.com" in a.get("href", "")]
+        self.assertGreaterEqual(len(hrefs), 2, "badge and FAQ text link")
+        for href in hrefs:
+            self.assertEqual(href, APP_STORE_URL)
+
+    def test_single_official_badge_is_the_first_action_before_the_screenshot(self):
+        badges = [i for i, (t, a) in enumerate(self.tags) if t == "img" and a.get("src") == BADGE_SRC]
+        self.assertEqual(len(badges), 1, "one App Store badge per layout")
+        img = self.tags[badges[0]][1]
+        self.assertEqual(img.get("alt"), "Download on the App Store")
+        self.assertEqual(img.get("height"), "48")
+        link_tag, link = self.tags[badges[0] - 1]
+        self.assertEqual((link_tag, link.get("href")), ("a", APP_STORE_URL))
+        self.assertNotIn("button", link.get("class", "").split(), "animated button class")
+        secondary = next(i for i, (t, a) in enumerate(self.tags)
+                         if t == "a" and a.get("href") == "#how" and "button" in a.get("class", "").split())
+        screenshot = next(i for i, (t, a) in enumerate(self.tags)
+                          if t == "img" and a.get("src") == "assets/screenshots/web/game-light.webp")
+        self.assertLess(badges[0], secondary, "badge is the primary action")
+        self.assertLess(secondary, screenshot, "actions precede the screenshot")
+
+    def test_availability_copy_and_trademark_notice(self):
+        text = visible_text("index.html")
+        self.assertNotIn("coming soon", text.lower())
+        self.assertIn("Now available on iPhone.", text)
+        self.assertIn("Where can I get Tambola Adda?", text)
+        self.assertEqual(text.count("Scan with your iPhone to download."), 1)
+        notice = ("Apple, the Apple logo, iPhone and App Store are trademarks of Apple Inc., "
+                  "registered in the U.S. and other countries.")
+        self.assertEqual(text.count(notice), 1)
+
+    def test_badge_file_is_apples_artwork_unmodified(self):
+        digest = hashlib.sha256((ROOT / BADGE_SRC).read_bytes()).hexdigest()
+        self.assertEqual(digest, BADGE_SHA256)
+
+    def test_qr_is_static_local_and_keeps_its_quiet_zone(self):
+        img = next(a for t, a in self.tags if t == "img" and a.get("src") == QR_SRC)
+        self.assertTrue(img.get("alt"))
+        self.assertEqual(img.get("width"), img.get("height"))
+        data = (ROOT / QR_SRC).read_text(encoding="utf-8")
+        for banned in ("href", "<script", "<image", "<style", "url(", "http://", "https://"):
+            self.assertNotIn(banned, data.replace('xmlns="http://www.w3.org/2000/svg"', ""))
+        root = ET.fromstring(data)
+        svg = "{http://www.w3.org/2000/svg}"
+        self.assertEqual(root.get("viewBox"), "0 0 37 37")
+        self.assertEqual([el.tag for el in root], [svg + "rect", svg + "path"])
+        rect, path = list(root)
+        self.assertEqual((rect.get("width"), rect.get("height"), rect.get("fill")), ("37", "37", "#fff"))
+        self.assertEqual(path.get("fill"), "#000")
+        # Dark modules are 1x1 squares; none may enter the four-module quiet zone.
+        modules = [tuple(map(int, m)) for m in re.findall(r"M(\d+) (\d+)h1v1h-1z", path.get("d"))]
+        self.assertTrue(modules)
+        self.assertEqual("".join(f"M{x} {y}h1v1h-1z" for x, y in modules), path.get("d"))
+        for x, y in modules:
+            self.assertTrue(4 <= x < 33 and 4 <= y < 33, (x, y))
 
 
 def jekyll_excludes():
