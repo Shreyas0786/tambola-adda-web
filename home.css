@@ -128,8 +128,8 @@ figcaption {
   text-align: center;
 }
 
-/* Hero: on phones the screenshot follows the intro directly and the links
-   come after it; on wide screens the screenshot sits beside both. */
+/* Hero: on phones the download actions follow the intro and come before the
+   screenshot; on wide screens the screenshot sits beside both. */
 .hero {
   display: grid;
   gap: 1.5rem;
@@ -200,7 +200,61 @@ figcaption {
   color: var(--yellow);
 }
 
+/* Download row first, then the secondary links. */
 .actions {
+  display: grid;
+  justify-items: start;
+  gap: 1rem;
+}
+
+.download {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+/* Apple's badge artwork, shown unmodified at 48px high. Gaps around it keep
+   at least a quarter of its height (12px) clear. No transforms, animation,
+   filters, opacity changes or shadows. */
+.store-badge {
+  display: block;
+  flex: none;
+  border-radius: 8px;
+  line-height: 0;
+  text-decoration: none;
+}
+
+.store-badge img {
+  display: block;
+  width: auto;
+  height: 48px;
+}
+
+/* QR code for desktop visitors; hidden on narrow screens, where the badge
+   link is used directly. */
+.qr {
+  display: none;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.qr img {
+  display: block;
+  flex: none;
+  width: 111px;
+  height: 111px;
+  border: 1px solid var(--line);
+}
+
+.qr figcaption {
+  margin: 0;
+  max-width: 9rem;
+  font-size: 0.9375rem;
+  line-height: 1.4;
+  text-align: left;
+}
+
+.more-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -216,6 +270,14 @@ figcaption {
   color: #ffffff;
   font-weight: 700;
   text-decoration: none;
+}
+
+/* Secondary action: outlined, same size as the filled button. */
+.button-secondary {
+  padding: calc(0.75rem - 2px) calc(1.5rem - 2px);
+  border: 2px solid var(--orange-dark);
+  background: transparent;
+  color: var(--orange-dark);
 }
 
 .text-link {
@@ -245,12 +307,26 @@ figcaption {
   color: var(--ink);
 }
 
+@media (hover: hover) {
+  .button.button-secondary:hover {
+    border-color: #9e300d;
+    background: #fff1e6;
+    color: #9e300d;
+  }
+}
+
+.button.button-secondary:active {
+  border-color: #842809;
+  background: #ffe6d4;
+  color: #842809;
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .button {
     transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
   }
 
-  .home a:not(.button) {
+  .home a:not(.button):not(.store-badge) {
     transition: color 0.15s ease, text-decoration-thickness 0.15s ease;
   }
 
@@ -545,6 +621,10 @@ figcaption {
   .actions {
     grid-area: actions;
     align-self: start;
+  }
+
+  .qr {
+    display: flex;
   }
 
   .hero-visual {
