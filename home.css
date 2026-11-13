@@ -426,6 +426,31 @@ figcaption {
   }
 }
 
+/* Promo video: a native player under the download actions. Visitors start
+   playback; there is no autoplay, loop or animation. The width and height
+   attributes and the aspect ratio reserve the 16:9 box, and the cream panel
+   matches the screenshot placeholder until the poster loads. */
+.promo {
+  min-width: 0;
+  margin-top: 0.5rem;
+}
+
+.promo-video {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  border: 1px solid var(--line);
+  border-radius: 1.25rem;
+  background: linear-gradient(180deg, #fffaf2 0%, #fdeedd 100%);
+  box-shadow: 0 18px 40px rgba(185, 58, 18, 0.16);
+}
+
+.promo-video:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 3px;
+}
+
 /* Sections */
 .how,
 .prizes,
@@ -607,7 +632,8 @@ figcaption {
     grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
     grid-template-areas:
       "intro visual"
-      "actions visual";
+      "actions visual"
+      "promo promo";
     column-gap: 2.5rem;
     row-gap: 1.5rem;
     padding-top: 3.5rem;
@@ -629,6 +655,13 @@ figcaption {
 
   .hero-visual {
     grid-area: visual;
+  }
+
+  /* The lowest ball hangs 1.5rem below the screenshot; this margin, the
+     screenshot's own bottom margin and the row gap keep it clear of the video. */
+  .promo {
+    grid-area: promo;
+    margin-top: 1.5rem;
   }
 
   .prizes {
