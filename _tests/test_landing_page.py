@@ -14,6 +14,8 @@ from pathlib import Path
 from urllib.parse import urljoin, urlsplit
 
 ROOT = Path(__file__).resolve().parent.parent
+# Tags whose src/poster the browser fetches as page resources.
+MEDIA_TAGS = ("img", "video", "source", "track")
 BASE = "https://shreyas0786.github.io/tambola-adda-web/"
 PAGES = ("index.html", "privacy/index.html", "support/index.html")
 
@@ -45,7 +47,7 @@ class Page(HTMLParser):
         self.tags.append((tag, a))
         if "id" in a:
             self.ids.add(a["id"])
-        for attr in ("href", "src"):
+        for attr in ("href", "src", "poster"):
             if a.get(attr) is not None:
                 self.links.append((tag, attr, a[attr]))
         if tag == "meta":
@@ -131,7 +133,7 @@ class LinksAndFragments(unittest.TestCase):
 
     def test_homepage_loads_no_third_party_resources(self):
         for tag, attr, value in Page("index.html").links:
-            if tag in ("img", "script") or (tag == "link" and attr == "href"):
+            if tag in MEDIA_TAGS or tag == "script" or (tag == "link" and attr == "href"):
                 url = urljoin(BASE, value)
                 with self.subTest(ref=value):
                     self.assertTrue(url.startswith(BASE), f"external resource: {value}")
@@ -215,7 +217,7 @@ def parse_csp(policy):
 
 
 class SecurityMetadata(unittest.TestCase):
-    RESOURCE_TAGS = {"link", "img", "script", "style", "iframe", "object", "embed", "video", "audio", "source"}
+    RESOURCE_TAGS = {"link", "img", "script", "style", "iframe", "object", "embed", "video", "audio", "source", "track"}
 
     def test_single_csp_meta_precedes_resource_loads(self):
         for rel in PAGES:
@@ -243,6 +245,11 @@ class SecurityMetadata(unittest.TestCase):
                     self.assertEqual(d.get(name), ["'none'"], name)
                 self.assertEqual(d.get("style-src"), ["'self'"])
                 self.assertEqual(d.get("img-src"), ["'self'"])
+                # Only the homepage plays local video and captions.
+                if rel == "index.html":
+                    self.assertEqual(d.get("media-src"), ["'self'"])
+                else:
+                    self.assertNotIn("media-src", d)
                 for loose in ("'unsafe-inline'", "'unsafe-eval'", "*", "http:", "https:", "data:"):
                     self.assertNotIn(loose, policy.split())
                 # Nothing on the page needs what the policy blocks.
@@ -250,7 +257,7 @@ class SecurityMetadata(unittest.TestCase):
                     self.assertNotIn(tag, {"script", "style", "form", "iframe", "object", "embed"})
                     self.assertNotIn("style", a, f"inline style on <{tag}>")
                 for tag, attr, value in page.links:
-                    if tag in ("img", "link"):
+                    if tag in MEDIA_TAGS or tag == "link":
                         self.assertTrue(urljoin(page_url(rel), value).startswith(BASE), value)
 
     def test_referrer_policy(self):
@@ -400,9 +407,162 @@ class Publishing(unittest.TestCase):
                 if target is not None:
                     required.add(target.relative_to(ROOT).as_posix())
         self.assertTrue(any(r.startswith("assets/screenshots/web/") for r in required))
+        self.assertLessEqual({VIDEO_SRC, POSTER_SRC, CAPTIONS_SRC}, required)
         for rel in sorted(required):
             with self.subTest(required=rel):
                 self.assertTrue(published(rel, excludes))
+
+
+VIDEO_SRC = "assets/video/tambola-adda-intro.mp4"
+POSTER_SRC = "assets/video/tambola-adda-intro-poster.png"
+CAPTIONS_SRC = "assets/video/tambola-adda-intro.en.vtt"
+# The approved promo video and poster, copied byte for byte.
+VIDEO_SHA256 = "61e2b6223f7afd5c9a8963f0089141a450f20af7eed8c5ed4c7e7317f091b4b5"
+POSTER_SHA256 = "e1e4b4187ef7a88c30efe4ba5d63440e604144e8190fe4952bde08b320e99a38"
+VIDEO_SECONDS = 23.0
+PROMO_TITLE = "See Tambola Adda in action"
+PROMO_DESC = "A quick look at calling numbers, tracking prizes, and hosting your next game."
+# Spoken phrases in order, and when each is audible (seconds). The windows were
+# measured from the voice-only soundtrack, whose narration lines up with the
+# final soundtrack at zero offset. Timing does not confirm the wording; that
+# needs a listening check.
+NARRATION = (
+    ("Hosting Tambola or Housie?", 0.32, 2.86),
+    ("Tambola Adda helps you call numbers aloud,", 3.12, 6.36),
+    ("follow the board,", 7.28, 8.12),
+    ("and keep track of prizes.", 11.24, 12.78),
+    ("So you can focus on your people.", 15.32, 17.54),
+    ("Free on iPhone. No ads. No account.", 19.42, 22.02),
+)
+MAX_LEAD, MAX_TAIL = 0.35, 0.5  # seconds a cue may show before/after speech
+
+
+def vtt_seconds(stamp):
+    match = re.fullmatch(r"(?:(\d{2,}):)?([0-5]\d):([0-5]\d)\.(\d{3})", stamp)
+    if not match:
+        raise ValueError(f"bad WebVTT timestamp: {stamp}")
+    hours, minutes, seconds, millis = match.groups()
+    return int(hours or 0) * 3600 + int(minutes) * 60 + int(seconds) + int(millis) / 1000
+
+
+def parse_vtt(text):
+    """Cues as (start, end, text) from a WebVTT file without regions or styles."""
+    blocks = re.split(r"\n{2,}", text.replace("\r\n", "\n").strip("\n"))
+    header = blocks[0].split("\n")[0]
+    if not re.fullmatch(r"WEBVTT(?:[ \t].*)?", header):
+        raise ValueError("missing WEBVTT header")
+    cues = []
+    for block in blocks[1:]:
+        lines = block.split("\n")
+        if "-->" not in lines[0]:
+            lines = lines[1:]  # cue identifier
+        timing = re.fullmatch(r"(\S+)[ \t]+-->[ \t]+(\S+)(?:[ \t]+.*)?", lines[0])
+        if not timing or len(lines) < 2:
+            raise ValueError(f"bad cue: {block!r}")
+        body = lines[1:]
+        if any("-->" in line or not line.strip() for line in body):
+            raise ValueError(f"bad cue text: {block!r}")
+        cues.append((vtt_seconds(timing[1]), vtt_seconds(timing[2]), " ".join(body)))
+    return cues
+
+
+class PromoVideo(unittest.TestCase):
+    def setUp(self):
+        self.page = Page("index.html")
+        self.tags = self.page.tags
+
+    def index_of(self, test):
+        return [i for i, (t, a) in enumerate(self.tags) if test(t, a)]
+
+    def test_native_player_configuration(self):
+        videos = self.index_of(lambda t, a: t == "video")
+        self.assertEqual(len(videos), 1)
+        video = self.tags[videos[0]][1]
+        for flag in ("controls", "playsinline"):
+            self.assertIn(flag, video)
+        for banned in ("autoplay", "loop", "muted"):
+            self.assertNotIn(banned, video)
+        self.assertEqual(video.get("preload"), "none")
+        self.assertEqual(video.get("poster"), POSTER_SRC)
+        self.assertEqual((video.get("width"), video.get("height")), ("1920", "1080"))
+        self.assertEqual(image_size(ROOT / POSTER_SRC), (1920, 1080))
+        sources = [a for t, a in self.tags if t == "source"]
+        self.assertEqual(sources, [{"src": VIDEO_SRC, "type": "video/mp4"}])
+        tracks = [a for t, a in self.tags if t == "track"]
+        self.assertEqual(len(tracks), 1)
+        self.assertEqual(tracks[0], {"kind": "captions", "src": CAPTIONS_SRC,
+                                     "srclang": "en", "label": "English"})
+        self.assertNotIn("default", tracks[0], "captions follow the visitor's choice")
+
+    def test_player_is_labelled_by_the_section_copy(self):
+        video = next(a for t, a in self.tags if t == "video")
+        by_id = {a["id"]: t for t, a in self.tags if "id" in a}
+        self.assertEqual(by_id.get(video.get("aria-labelledby")), "h2")
+        self.assertEqual(by_id.get(video.get("aria-describedby")), "p")
+        text = visible_text("index.html")
+        self.assertEqual(text.count(PROMO_TITLE), 1)
+        self.assertEqual(text.count(PROMO_DESC), 1)
+
+    def test_placement_after_download_actions_before_screenshot(self):
+        first = lambda test: self.index_of(test)[0]
+        badge = first(lambda t, a: t == "img" and a.get("src") == BADGE_SRC)
+        secondary = first(lambda t, a: t == "a" and a.get("href") == "#how"
+                          and "button" in a.get("class", "").split())
+        promo = first(lambda t, a: t == "section" and a.get("class") == "promo")
+        screenshot = first(lambda t, a: t == "img" and a.get("src") == "assets/screenshots/web/game-light.webp")
+        how = first(lambda t, a: a.get("id") == "how")
+        self.assertEqual(sorted([badge, secondary, promo, screenshot, how]),
+                         [badge, secondary, promo, screenshot, how])
+        # The section holds only its heading, description and player.
+        visual = first(lambda t, a: t == "div" and a.get("class") == "hero-visual")
+        self.assertEqual([t for t, _ in self.tags[promo:visual]],
+                         ["section", "h2", "p", "video", "source", "track"])
+
+    def test_media_files_are_the_approved_copies(self):
+        for rel, digest in ((VIDEO_SRC, VIDEO_SHA256), (POSTER_SRC, POSTER_SHA256)):
+            with self.subTest(file=rel):
+                self.assertEqual(hashlib.sha256((ROOT / rel).read_bytes()).hexdigest(), digest)
+
+    def test_media_paths_are_project_relative(self):
+        html = (ROOT / "index.html").read_text(encoding="utf-8")
+        for banned in ("/Users/", "Desktop", "file:", "Video Handoff"):
+            self.assertNotIn(banned, html)
+        refs = [v for t, _, v in self.page.links if t in ("video", "source", "track")]
+        self.assertEqual(sorted(set(refs)), sorted({VIDEO_SRC, POSTER_SRC, CAPTIONS_SRC}))
+
+
+class Captions(unittest.TestCase):
+    def setUp(self):
+        self.text = (ROOT / CAPTIONS_SRC).read_text(encoding="utf-8")
+        self.cues = parse_vtt(self.text)
+
+    def test_cues_follow_the_narration(self):
+        self.assertEqual([c[2] for c in self.cues], [n[0] for n in NARRATION])
+
+    def test_cues_are_ordered_and_within_the_video(self):
+        previous_end = 0.0
+        for start, end, text in self.cues:
+            with self.subTest(cue=text):
+                self.assertLess(start, end)
+                self.assertGreaterEqual(start, previous_end, "cues must not overlap")
+                self.assertLessEqual(end, VIDEO_SECONDS)
+            previous_end = end
+
+    def test_cues_cover_each_measured_speech_window(self):
+        for (start, end, text), (_, onset, offset) in zip(self.cues, NARRATION):
+            with self.subTest(cue=text):
+                self.assertLessEqual(start, onset)
+                self.assertLessEqual(onset - start, MAX_LEAD)
+                self.assertGreaterEqual(end, offset)
+                self.assertLessEqual(end - offset, MAX_TAIL)
+
+    def test_brand_spelling(self):
+        self.assertIn("Tambola Adda", self.text)
+        for source in (self.text, visible_text("index.html")):
+            # Word-bounded, so the support email address is not a brand mention.
+            pattern = r"(?<![\w.@])t[ao]mbol+a\s*a+d+a+h?(?![\w.@])"
+            for match in re.findall(pattern, source, re.IGNORECASE):
+                self.assertEqual(match, "Tambola Adda")
 
 
 if __name__ == "__main__":
